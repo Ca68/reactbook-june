@@ -1,28 +1,20 @@
 import React, { useState } from "react";
+import emailjs from "emailjs-com";
+//import {SERVICE_ID, TEMPLATE_ID, USER_ID} from '.env'
 
 export const Contact = () => {
 
-    const [status, setStatus] = useState("Submit");
-    const handleSubmit = async (e) => {
+    function sendEmail(e) {
         e.preventDefault();
-        setStatus("Sending...");
-        const { name, email, message } = e.target.elements;
-        let details = {
-            name: name.value,
-            email: email.value,
-            message: message.value,
-        };
-        let response = await fetch("http://localhost:5000/contact", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json;charset=utf-8",
-            },
-            body: JSON.stringify(details),
-        });
-        setStatus("Submit");
-        let result = await response.json();
-        alert(result.status);
-    };
+
+    emailjs.sendForm(process.env.REACT_APP_SERVICE_ID, process.env.REACT_APP_TEMPLATE_ID, e.target, process.env.REACT_APP_USER_ID)
+      .then((result) => {
+          console.log(result.text);
+      }, (error) => {
+          console.log(error.text);
+      });
+      e.target.reset()
+    }
     return (
         <div>
       
@@ -33,7 +25,7 @@ export const Contact = () => {
             <div class="row">
                 <div class="col-md-6 offset-md-3">
 
-                    <form  action="" method="POST">
+                    <form  onSubmit={sendEmail} action="" method="POST">
 
                         <div class="form-group">
                            
@@ -50,7 +42,7 @@ export const Contact = () => {
                             <div class="form-group">
                                 <textarea class="form-control" name="message" id="" cols="30" rows="10"></textarea>
                             </div>
-                            <button onSubmit={handleSubmit} class="btn btn-info btn-block" defaultValue={status} type="submit">Send us a message</button>
+                            <button class="btn btn-info btn-block"  type="submit">Send us a message</button>
                     </form>     
            
                 </div>
