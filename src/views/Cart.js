@@ -1,12 +1,14 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CartItem } from '../components/CartItem'
+import { CartItem } from '../components/CartItem';
 import { useAuth } from '../contexts/AuthContext';
 import { DataContext } from '../contexts/DataProvider';
 import firebase from '../firebase';
+import StripeCheckout from "react-stripe-checkout";
+import { loadStripe } from '@stripe/stripe-js'
 
-export const Cart = () =>
-{
+export const Cart = () => {
+    const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY)
     const db = firebase.firestore();
     const { currentUser } = useAuth();
     const { cart, getCart } = useContext(DataContext);
@@ -14,28 +16,52 @@ export const Cart = () =>
 
     const handleUpdate = (infoObj) => {
         if (infoObj.id in newCart) {
-            let newDict = {...newCart};
+            let newDict = { ...newCart };
             newDict[infoObj.id] = infoObj.quantity;
             setNewCart(newDict);
         }
         else {
             let newDict = {};
             newDict[infoObj.id] = infoObj.quantity;
-            setNewCart({...newCart, ...newDict })
+            setNewCart({ ...newCart, ...newDict })
         }
     }
     useEffect(() => {
-        Object.keys(newCart).forEach(prod =>
-        {
+        Object.keys(newCart).forEach(prod => {
             db.collection('users').doc(currentUser.id).collection('cart').doc(prod).update({
-                quantity: newCart[ prod ]
+                quantity: newCart[prod]
             }).catch(err => console.error(err))
         })
         getCart();
-        
+
         //console.log('hi')
         // eslint-disable-next-line
-    }, [ newCart, currentUser.id, db ])
+    }, [newCart, currentUser.id, db])
+
+
+
+
+
+    const handleCheckout = async (e) => {
+        e.preventDefault();
+        const stripe = await stripePromise
+            fetch('/api/shop/checkout', {
+                method: "POST",
+                mode: "cors",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(cart),
+            })
+                .then((res) => res.json())
+                .then((data) =>
+                    stripe.redirectToCheckout({ sessionId: data["session_id"] })
+                );
+        };
+
+        
+
+
 
     return (
         <div>
@@ -52,7 +78,7 @@ export const Cart = () =>
                 <div className="card-body">
 
                     {/* <!-- PRODUCTS --> */}
-                    {Object.values(cart.items).map(productInfo => <CartItem handleUpdate={handleUpdate} key={ productInfo.id } data={ productInfo } />) }
+                    {Object.values(cart.items).map(productInfo => <CartItem handleUpdate={handleUpdate} key={productInfo.id} data={productInfo} />)}
                     {/* <!-- END PRODUCTS --> */}
 
                     <div className="pull-right">
@@ -74,17 +100,17 @@ export const Cart = () =>
                                             </div> --> */}
                     <div className="text-right">
                         <div className="cart-totals">
-                            Subtotal: <b>${ cart.subtotal }</b>
+                            Subtotal: <b>${cart.subtotal}</b>
                         </div>
                         <div className="cart-totals">
-                            Tax: <b>${ cart.taxes }</b>
+                            Tax: <b>${cart.taxes}</b>
                         </div>
                         <div className="cart-totals">
-                            Grand total: <b>${ cart.grandtotal }</b>
+                            Grand total: <b>${cart.grandtotal}</b>
                         </div>
                     </div>
                     <div className="pull-right" style={{ margin: "10px" }}>
-                        <form id="checkout-form" action="" method="POST">
+                        <form onSubmit={(e) => handleCheckout(e)} id="checkout-form" action="" method="POST" >
                             <input type="submit" className="btn btn-success pull-right" value="Checkout" />
                         </form>
                     </div>

@@ -11,7 +11,7 @@ export const Product = (props) => {
     let buttonState = 'READY';
 
     const handleClick = (obj) => {
-      
+
         buttonState = 'LOADING';
 
         db.collection('users').doc(currentUser.id).collection('cart').doc(props.product.id).get()
